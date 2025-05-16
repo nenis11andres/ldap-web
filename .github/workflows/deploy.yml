@@ -43,19 +43,19 @@ jobs:
 
       - name: Subir archivos .cer al servidor web
         run: |
-          scp -o StrictHostKeyChecking=no -i claveuno.pem miapp-docker/*.cer ec2-user@52.23.3.134:/tmp/
+          scp -o StrictHostKeyChecking=no -i claveuno.pem miapp-docker/*.cer ec2-user@54.165.40.6:/tmp/
 
       - name: Subir archivos .key al servidor web
         run: |
-          scp -o StrictHostKeyChecking=no -i claveuno.pem miapp-docker/*.key ec2-user@52.23.3.134:/tmp/
+          scp -o StrictHostKeyChecking=no -i claveuno.pem miapp-docker/*.key ec2-user@54.165.40.6:/tmp/
 
       - name: Subir clavedos.pem a la instancia
         run: |
-          scp -o StrictHostKeyChecking=no -i claveuno.pem clavedos.pem ec2-user@52.23.3.134:/home/ec2-user/
+          scp -o StrictHostKeyChecking=no -i claveuno.pem clavedos.pem ec2-user@54.165.40.6:/home/ec2-user/
 
       - name: Configurar SSL en Apache en la instancia
         run: |
-          ssh -o StrictHostKeyChecking=no -i claveuno.pem ec2-user@52.23.3.134 << 'EOF'
+          ssh -o StrictHostKeyChecking=no -i claveuno.pem ec2-user@54.165.40.6 << 'EOF'
             sudo mkdir -p /etc/ssl/andres/
             sudo mv /tmp/*.cer /etc/ssl/andres/
             sudo mv /tmp/*.key /etc/ssl/andres/
