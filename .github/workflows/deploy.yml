@@ -59,7 +59,7 @@ jobs:
             sudo mkdir -p /etc/ssl/andres/
             sudo mv /tmp/*.cer /etc/ssl/andres/
             sudo mv /tmp/*.key /etc/ssl/andres/
-            sudo systemctl restart httpd
+            
           EOF
 
       # -----  Transferir y ejecutar en LDAP -----
