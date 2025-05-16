@@ -43,7 +43,7 @@ jobs:
         id: capturar_ip_ec2_ldap
         run: echo "instance_private_ip_ldap=$(terraform output -raw instance_private_ip_ldap)" >> "$GITHUB_OUTPUT"
 
-      - name: Crear clave privada
+      - name: Crear clave privada claveuno.pem
         run: |
           echo "${{ secrets.EC2_SSH_KEY_CLAVEUNO }}" > claveuno.pem
           chmod 600 claveuno.pem
@@ -55,3 +55,21 @@ jobs:
       - name: Subir archivos .key al servidor web
         run: |
           scp -o StrictHostKeyChecking=no -i claveuno.pem miapp-docker/*.key ec2-user@${{ steps.capturar_ip_ec2.outputs.instance_public_ip }}:/tmp/
+
+      - name: Crear clave clavedos.pem
+        run: |
+          echo "${{ secrets.EC2_SSH_KEY_CLAVEDOS }}" > clavedos.pem
+          chmod 600 clavedos.pem
+
+      - name: Subir clavedos.pem al servidor web
+        run: |
+          scp -o StrictHostKeyChecking=no -i claveuno.pem clavedos.pem ec2-user@${{ steps.capturar_ip_ec2.outputs.instance_public_ip }}:/home/ec2-user/
+
+      - name: Configurar SSL y reiniciar Apache
+        run: |
+          ssh -o StrictHostKeyChecking=no -i claveuno.pem ec2-user@${{ steps.capturar_ip_ec2.outputs.instance_public_ip }} << 'EOF'
+            sudo mkdir -p /etc/ssl/andres/
+            sudo mv /tmp/*.cer /etc/ssl/andres/
+            sudo mv /tmp/*.key /etc/ssl/andres/
+            sudo systemctl restart httpd
+          EOF
