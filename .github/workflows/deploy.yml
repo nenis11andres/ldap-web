@@ -42,3 +42,16 @@ jobs:
       - name: Capturar IP privada de la instancia LDAP
         id: capturar_ip_ec2_ldap
         run: echo "instance_private_ip_ldap=$(terraform output -raw instance_private_ip_ldap)" >> "$GITHUB_OUTPUT"
+
+      - name: Crear clave privada
+        run: |
+          echo "${{ secrets.EC2_SSH_KEY_CLAVEUNO }}" > claveuno.pem
+          chmod 600 claveuno.pem
+
+      - name: Subir archivos .cer al servidor web
+        run: |
+          scp -o StrictHostKeyChecking=no -i claveuno.pem miapp-docker/*.cer ec2-user@${{ steps.capturar_ip_ec2.outputs.instance_public_ip }}:/tmp/
+
+      - name: Subir archivos .key al servidor web
+        run: |
+          scp -o StrictHostKeyChecking=no -i claveuno.pem miapp-docker/*.key ec2-user@${{ steps.capturar_ip_ec2.outputs.instance_public_ip }}:/tmp/
