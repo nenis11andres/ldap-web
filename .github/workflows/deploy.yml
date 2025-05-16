@@ -43,21 +43,56 @@ jobs:
 
       - name: Subir archivos .cer al servidor web
         run: |
-          scp -o StrictHostKeyChecking=no -i claveuno.pem miapp-docker/*.cer ec2-user@54.165.40.6:/tmp/
+          scp -o StrictHostKeyChecking=no -i claveuno.pem miapp-docker/*.cer ec2-user@${{ secrets.ELASTIC_IP }}:/tmp/
 
       - name: Subir archivos .key al servidor web
         run: |
-          scp -o StrictHostKeyChecking=no -i claveuno.pem miapp-docker/*.key ec2-user@54.165.40.6:/tmp/
+          scp -o StrictHostKeyChecking=no -i claveuno.pem miapp-docker/*.key ec2-user@${{ secrets.ELASTIC_IP }}:/tmp/
 
       - name: Subir clavedos.pem a la instancia
         run: |
-          scp -o StrictHostKeyChecking=no -i claveuno.pem clavedos.pem ec2-user@54.165.40.6:/home/ec2-user/
+          scp -o StrictHostKeyChecking=no -i claveuno.pem clavedos.pem ec2-user@${{ secrets.ELASTIC_IP }}:/home/ec2-user/
 
       - name: Configurar SSL en Apache en la instancia
         run: |
-          ssh -o StrictHostKeyChecking=no -i claveuno.pem ec2-user@54.165.40.6 << 'EOF'
+          ssh -o StrictHostKeyChecking=no -i claveuno.pem ec2-user@${{ secrets.ELASTIC_IP }} << 'EOF'
             sudo mkdir -p /etc/ssl/andres/
             sudo mv /tmp/*.cer /etc/ssl/andres/
             sudo mv /tmp/*.key /etc/ssl/andres/
-            
+            sudo systemctl restart httpd
           EOF
+
+      # ----- Aquí empieza la nueva parte para transferir y ejecutar en LDAP -----
+
+      - name: Transferir carpeta desde servidor web a LDAP
+        run: |
+          ssh -i claveuno.pem -o StrictHostKeyChecking=no ec2-user@${{ secrets.ELASTIC_IP }} << EOF
+            scp -o StrictHostKeyChecking=no -i /home/ec2-user/claveuno.pem -r /home/ec2-user/archivos-ldap ec2-user@${{ needs.despliegue.outputs.instance_private_ip_ldap }}:/home/ec2-user/archivos-ldap
+          EOF
+
+      - name: Configurar SSH en el Bastión
+        run: |
+          ssh -i claveuno.pem -o StrictHostKeyChecking=no ec2-user@${{ secrets.ELASTIC_IP }} \
+            "mkdir -p ~/.ssh && cp /home/ec2-user/claveuno.pem ~/.ssh/ && chmod 600 ~/.ssh/claveuno.pem"   
+
+      - name: Crear archivo SSH config en la instancia del Bastión
+        run: |
+          ssh -i claveuno.pem ec2-user@${{ secrets.ELASTIC_IP }} << EOF
+            mkdir -p ~/.ssh
+            echo "Host ldap-instance" > ~/.ssh/config
+            echo "  HostName ${{ needs.despliegue.outputs.instance_private_ip_ldap }}" >> ~/.ssh/config
+            echo "  User ec2-user" >> ~/.ssh/config
+            echo "  IdentityFile ~/.ssh/claveuno.pem" >> ~/.ssh/config
+            echo "  ProxyCommand ssh -i ~/.ssh/claveuno.pem -o StrictHostKeyChecking=no ec2-user@${{ secrets.ELASTIC_IP }} -W %h:%p" >> ~/.ssh/config
+            chmod 600 ~/.ssh/config
+          EOF
+
+      - name: Ejecutar script en la instancia LDAP
+        run: |
+          ssh -i claveuno.pem ec2-user@${{ secrets.ELASTIC_IP }} << EOF
+            ssh ldap-instance "sudo chmod +x /home/ec2-user/archivos-ldap/ec2.sh && sudo /home/ec2-user/archivos-ldap/ec2.sh && sudo docker exec ldap-container bash -c 'chmod +x add-ldif.sh' && sudo docker exec ldap-container bash './add-ldif.sh'"
+          EOF
+
+      - name: Borrar archivo private key
+        run: |
+          rm -f claveuno.pem
