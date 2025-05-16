@@ -1,0 +1,44 @@
+name: CI/CD LDAP Infraestructura
+
+on:
+  workflow_dispatch:
+
+jobs:
+  despliegue:
+    runs-on: ubuntu-latest
+
+    outputs:
+      instance_public_ip: ${{ steps.capturar_ip_ec2.outputs.instance_public_ip }}
+      instance_private_ip_ldap: ${{ steps.capturar_ip_ec2_ldap.outputs.instance_private_ip_ldap }}
+
+    steps:
+      - name: Checkout del repositorio
+        uses: actions/checkout@v4
+
+      - name: Configurar credenciales de AWS
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
+          aws-region: us-east-1
+
+      - name: Instalar Terraform
+        uses: hashicorp/setup-terraform@v3
+
+      - name: Inicializar Terraform
+        run: terraform init
+
+      - name: Plan de Terraform
+        run: terraform plan
+
+      - name: Aplicar Terraform
+        run: terraform apply -auto-approve
+
+      - name: Capturar IP pública de la instancia web
+        id: capturar_ip_ec2
+        run: echo "instance_public_ip=$(terraform output -raw instance_public_ip)" >> "$GITHUB_OUTPUT"
+
+      - name: Capturar IP privada de la instancia LDAP
+        id: capturar_ip_ec2_ldap
+        run: echo "instance_private_ip_ldap=$(terraform output -raw instance_private_ip_ldap)" >> "$GITHUB_OUTPUT"
