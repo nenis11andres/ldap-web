@@ -1,0 +1,8 @@
+dn: dc=andres,dc=work,dc=gd
+objectClass: top
+objectClass: domain
+dc: andres
+
+dn: ou=usuarios,dc=andres,dc=work,dc=gd
+objectClass: organizationalUnit
+ou: usuarios

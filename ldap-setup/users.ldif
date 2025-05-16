@@ -1,0 +1,13 @@
+dn: uid=admin,ou=usuarios,dc=andres,dc=work,dc=gd
+objectClass: inetOrgPerson
+cn: Admin
+sn: Admin
+uid: admin
+userPassword: admin123
+
+dn: uid=maria,ou=usuarios,dc=andres,dc=work,dc=gd
+objectClass: inetOrgPerson
+cn: Maria
+sn: Lopez
+uid: maria
+userPassword: maria123
