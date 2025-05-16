@@ -41,13 +41,13 @@ variable "key_name2" {
 variable "eip_web_allocation_id" {
   description = "Allocation ID de la Elastic IP para la instancia web"
   type        = string
-  default     = "eipalloc-0b4a1b7674dc8a37e"  # Cambia por tu valor real
+  default     = "eipalloc-07428a0a8a6d83045"  # Cambia por tu valor real
 }
 
 variable "eip_nat_allocation_id" {
   description = "Allocation ID de la Elastic IP para el NAT Gateway"
   type        = string
-  default     = "eipalloc-099b4f35ad251eaed"  # Cambia por tu valor real
+  default     = "eipalloc-0ce5898e3d1e786d7"  # Cambia por tu valor real
 }
 
 
