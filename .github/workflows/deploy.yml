@@ -7,10 +7,6 @@ jobs:
   despliegue:
     runs-on: ubuntu-latest
 
-    outputs:
-      instance_public_ip: ${{ steps.capturar_ip_ec2.outputs.instance_public_ip }}
-      instance_private_ip_ldap: ${{ steps.capturar_ip_ec2_ldap.outputs.instance_private_ip_ldap }}
-
     steps:
       - name: Checkout del repositorio
         uses: actions/checkout@v4
@@ -35,39 +31,31 @@ jobs:
       - name: Aplicar Terraform
         run: terraform apply -auto-approve
 
-      - name: Capturar IP pública de la instancia web
-        id: capturar_ip_ec2
-        run: echo "instance_public_ip=$(terraform output -raw instance_public_ip)" >> "$GITHUB_OUTPUT"
-
-      - name: Capturar IP privada de la instancia LDAP
-        id: capturar_ip_ec2_ldap
-        run: echo "instance_private_ip_ldap=$(terraform output -raw instance_private_ip_ldap)" >> "$GITHUB_OUTPUT"
-
       - name: Crear clave privada claveuno.pem
         run: |
           echo "${{ secrets.EC2_SSH_KEY_CLAVEUNO }}" > claveuno.pem
           chmod 600 claveuno.pem
 
-      - name: Subir archivos .cer al servidor web
-        run: |
-          scp -o StrictHostKeyChecking=no -i claveuno.pem miapp-docker/*.cer ec2-user@${{ steps.capturar_ip_ec2.outputs.instance_public_ip }}:/tmp/
-
-      - name: Subir archivos .key al servidor web
-        run: |
-          scp -o StrictHostKeyChecking=no -i claveuno.pem miapp-docker/*.key ec2-user@${{ steps.capturar_ip_ec2.outputs.instance_public_ip }}:/tmp/
-
-      - name: Crear clave clavedos.pem
+      - name: Crear clave privada clavedos.pem
         run: |
           echo "${{ secrets.EC2_SSH_KEY_CLAVEDOS }}" > clavedos.pem
           chmod 600 clavedos.pem
 
-      - name: Subir clavedos.pem al servidor web
+      - name: Subir archivos .cer al servidor web
         run: |
-          scp -o StrictHostKeyChecking=no -i claveuno.pem clavedos.pem ec2-user@${{ steps.capturar_ip_ec2.outputs.instance_public_ip }}:/home/ec2-user/
+          scp -o StrictHostKeyChecking=no -i claveuno.pem miapp-docker/*.cer ec2-user@52.23.3.134:/tmp/
 
-      - name: Configurar SSL y reiniciar Apache
+      - name: Subir archivos .key al servidor web
         run: |
-          ssh -o StrictHostKeyChecking=no -i claveuno.pem ec2-user@${{ steps.capturar_ip_ec2.outputs.instance_public_ip }} << 'EOF'
+          scp -o StrictHostKeyChecking=no -i claveuno.pem miapp-docker/*.key ec2-user@52.23.3.134:/tmp/
+
+      - name: Subir clavedos.pem a la instancia
+        run: |
+          scp -o StrictHostKeyChecking=no -i claveuno.pem clavedos.pem ec2-user@52.23.3.134:/home/ec2-user/
+
+      - name: Configurar SSL en Apache en la instancia
+        run: |
+          ssh -o StrictHostKeyChecking=no -i claveuno.pem ec2-user@52.23.3.134 << 'EOF'
             sudo mkdir -p /etc/ssl/andres/
             sudo mv /tmp/*.cer /etc/ssl/andres/
             sudo mv /tmp/*.key /etc/ssl/andres/
